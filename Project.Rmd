@@ -1,0 +1,108 @@
+Practical Machine Learning Course: Project
+========================================================
+
+*This is very simple analysis to the project of Practical Machine Learning a Course in Coursera Platform of Johns Hopkins University*
+
+**I. Back Ground**
+
+This work use the word use data collecte by devices such as Jawbone Up, Nike FuelBand, and Fitbit; a group of enthusiasts take measurements about themselves regularly to improve their health. More Information about this data can be find it in this web link: http://groupware.les.inf.puc-rio.br/har
+
+Data contain records of 6 participants about accelerometers on the belt, forearm, arm, and dumbell. We usxe this data to predict the manner in which they did the exercise, by using mainly "classe" variable. We use cross validation, random forest and decision trees to build our model. As part of this project we also to predict 20 different test cases.
+
+**II. Data Processing**
+
+*Loading data and loading necesaries packages*
+
+```{r}
+## We need this packages to precessing data and to construct our model
+
+library(caret)
+library(rpart.plot)
+library(RColorBrewer)
+library(rattle)
+library(rpart)
+library(randomForest)
+
+## Loading data sets
+
+Url_trainig <- "http://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+
+Url_testing <- "http://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+
+```
+
+* cleaning Data*
+
+```{r}
+training <- read.csv(url(Url_trainig), na.strings=c("NA","#DIV/0!",""))
+testing <- read.csv(url(Url_testing ), na.strings=c("NA","#DIV/0!",""))
+
+##Partioning Data
+
+set.seed(1200)
+
+train_1 <- createDataPartition(y=training$classe, p=0.6, list=FALSE)
+train_f <- training[train_1, ]
+testing_1 <- training[-train_1, ]
+
+## getting variation varables
+
+Var_variables <- nearZeroVar(train_f, saveMetrics=TRUE)
+
+## Renaming Variables
+
+var_variables_names <- names(train_f)  %in%  c("new_window", "kurtosis_roll_belt", "kurtosis_picth_belt", "kurtosis_yaw_belt", "skewness_roll_belt", "skewness_roll_belt.1", "skewness_yaw_belt","max_yaw_belt", "min_yaw_belt", "amplitude_yaw_belt", "avg_roll_arm", "stddev_roll_arm", "var_roll_arm", "avg_pitch_arm", "stddev_pitch_arm", "var_pitch_arm", "avg_yaw_arm", "stddev_yaw_arm", "var_yaw_arm", "kurtosis_roll_arm", "kurtosis_picth_arm", "kurtosis_yaw_arm", "skewness_roll_arm", "skewness_pitch_arm", "skewness_yaw_arm", "max_roll_arm", "min_roll_arm", "min_pitch_arm", "amplitude_roll_arm", "amplitude_pitch_arm", "kurtosis_roll_dumbbell", "kurtosis_picth_dumbbell", "kurtosis_yaw_dumbbell", "skewness_roll_dumbbell", "skewness_pitch_dumbbell", "skewness_yaw_dumbbell", "max_yaw_dumbbell", "min_yaw_dumbbell", "amplitude_yaw_dumbbell", "kurtosis_roll_forearm", "kurtosis_picth_forearm", "kurtosis_yaw_forearm", "skewness_roll_forearm", "skewness_pitch_forearm", "skewness_yaw_forearm", "max_roll_forearm", "max_yaw_forearm", "min_roll_forearm", "min_yaw_forearm", "amplitude_roll_forearm", "amplitude_yaw_forearm", "avg_roll_forearm", "stddev_roll_forearm", "var_roll_forearm", "avg_pitch_forearm", "stddev_pitch_forearm", "var_pitch_forearm", "avg_yaw_forearm", "stddev_yaw_forearm", "var_yaw_forearm")
+
+
+train_f_f <- train_f[!var_variables_names]
+
+train_f_f_nh <- train_f_f[c(-1)]
+
+## We Clone train_f_f_nh data set to simplify our iterative proccess
+
+train_f_f_i <- train_f_f_nh
+
+##We want to get a data set with adecuate number of valid observations 
+## So if a variable have 60% of NAs the observations that  column is delete in the loop
+no <- length(train_f_f_nh)
+mo <- length(train_f_f_i)
+
+
+for(i in 1:no) { 
+        if( sum( is.na(train_f_f_nh[, i] ) ) /nrow(train_f_f_nh) >= .6 ) { 
+        for(j in 1:mo) {
+            if( length( grep(names(train_f_f_nh[i]),names(train_f_f_i)[j]) ) ==1)
+              {train_f_f_i <- train_f_f_i[ , -j] }   
+        } 
+    }
+}
+
+## We want to check how many varibles this stand ahead
+dim(train_f_f_i)
+
+training_final <- train_f_f
+```
+
+**III. Modeling**
+
+* Decision tree*
+
+```{r} 
+model_1 <- rpart(classe ~ ., data=training_final, method="class")
+```
+
+
+```{r fig.width=7, fig.height=6}
+fancyRpartPlot(model_1)
+```
+
+*Confusion matrix*
+
+```{r} 
+prediction_1 <- predict(model_1, training_final , type = "class")
+```
+
+
+```{r}
+confusionMatrix(prediction_1, training_final$classe)
+```
